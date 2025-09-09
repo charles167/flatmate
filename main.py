@@ -1,26 +1,43 @@
+from flask import Flask, render_template, request
 from flat import Bill, Flatmate
 from reports import PdfReport
 
+app = Flask(__name__)
 
-# Ask for user input
-amount = float(input("Hey user, enter the bill amount: "))
-period = input("What is the bill period? E.g. March 2025: ")
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        # Get data from form
+        amount = float(request.form["amount"])
+        period = request.form["period"]
 
-name1 = input("What is your name? ")
-days1 = int(input(f"How many days did {name1} stay in the house during the bill period? "))
+        name1 = request.form["name1"]
+        days1 = int(request.form["days1"])
 
-name2 = input("What is the name of the other flatmate? ")
-days2 = int(input(f"How many days did {name2} stay in the house during the bill period? "))
+        name2 = request.form["name2"]
+        days2 = int(request.form["days2"])
 
-# Create objects
-the_bill = Bill(amount, period)
-flatmate1 = Flatmate(name1, days1)
-flatmate2 = Flatmate(name2, days2)
+        # Create objects
+        the_bill = Bill(amount, period)
+        flatmate1 = Flatmate(name1, days1)
+        flatmate2 = Flatmate(name2, days2)
 
-# Print results
-print(f"{flatmate1.name} pays: ${flatmate1.pays(the_bill, flatmate2)}")
-print(f"{flatmate2.name} pays: ${flatmate2.pays(the_bill, flatmate1)}")
+        # Payments
+        pay1 = flatmate1.pays(the_bill, flatmate2)
+        pay2 = flatmate2.pays(the_bill, flatmate1)
 
-# Generate PDF
-pdf_report = PdfReport(filename=f"Bill_{the_bill.period}.pdf")
-pdf_report.generate(flatmate1, flatmate2, the_bill)
+        # Generate PDF
+        pdf_report = PdfReport(filename=f"Bill_{the_bill.period}.pdf")
+        pdf_report.generate(flatmate1, flatmate2, the_bill)
+
+        return render_template(
+            "result.html",
+            name1=name1, pay1=pay1,
+            name2=name2, pay2=pay2,
+            period=period
+        )
+
+    return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
